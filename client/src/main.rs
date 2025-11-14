@@ -6,7 +6,7 @@ async fn main() -> tokio::io::Result<()> {
     let mut socket = TcpStream::connect("localhost:8080").await?;
 
     let msg = ClientMessage::JoinRequest {
-        username: "My username".to_string(),
+        username: "My username".to_string().into(),
     };
     write_msg(&mut socket, &msg).await?;
 

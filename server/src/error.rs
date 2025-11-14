@@ -6,10 +6,10 @@ pub type Result<T> = core::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
-    ConnectionClosed { uuid: Uid, username: String },
-    EncodeError { message: Arc<ServerMessage> },
+    ConnectionClosed { uuid: Uid, username: Arc<str> },
+    EncodeError { message: ServerMessage },
     FailedToJoin,
-    AlreadyJoined { uuid: Uid, username: String },
+    AlreadyJoined { uuid: Uid, username: Arc<str> },
 }
 
 impl Display for Error {

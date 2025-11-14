@@ -1,4 +1,7 @@
-use bincode::{Decode, Encode};
+use std::sync::Arc;
+
+use bincode::{Decode, Encode, config};
+use bytes::{BufMut, Bytes, BytesMut};
 use tokio::io::{self, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 use crate::uuid::Uid;
@@ -6,26 +9,26 @@ use crate::uuid::Uid;
 #[derive(Debug, Clone, Encode, Decode)]
 pub struct ChatMessage {
     pub from: Uid,
-    pub text: String,
+    pub text: Arc<str>,
     pub timestamp: u64,
 }
 
 #[derive(Encode, Decode, Debug, Clone)]
 pub enum ClientMessage {
-    Chat { text: String },
-    JoinRequest { username: String },
+    Chat { text: Arc<str> },
+    JoinRequest { username: Arc<str> },
 }
 
 #[derive(Encode, Decode, Debug, Clone)]
 pub enum ServerMessage {
-    Chat(ChatMessage),
+    Chat(Arc<ChatMessage>),
     JoinAccepted {
-        history: Vec<ChatMessage>,
-        participants: Vec<(Uid, String)>,
+        history: Vec<Arc<ChatMessage>>,
+        participants: Vec<(Uid, Arc<str>)>,
     },
     UserJoined {
         uuid: Uid,
-        username: String,
+        username: Arc<str>,
     },
     UserLeft {
         uuid: Uid,
@@ -51,12 +54,29 @@ where
 {
     let mut len_buf = [0u8; 4];
     reader.read_exact(&mut len_buf).await?;
-
     let len = u32::from_be_bytes(len_buf) as usize;
-    let mut buf = vec![0u8; len];
-    reader.read_exact(&mut buf).await?;
 
-    let (message, _) = bincode::decode_from_slice(&buf, bincode::config::standard())
+    let mut data = vec![0u8; len];
+    reader.read_exact(&mut data).await?;
+
+    let config = config::standard();
+
+    let (message, _) = bincode::decode_from_slice(&data, config)
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
     Ok(message)
+}
+
+pub async fn encode_message<T: Encode>(message: &T) -> io::Result<Bytes> {
+    let config = config::standard();
+
+    let data = bincode::encode_to_vec(message, config)
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+    let mut buf = BytesMut::with_capacity(4 + data.len());
+
+    buf.put_u32(data.len() as u32);
+    buf.extend_from_slice(&data);
+
+    Ok(buf.freeze())
 }

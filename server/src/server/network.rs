@@ -3,11 +3,13 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+use bytes::Bytes;
 use common::{
-    protocol::{ChatMessage, ClientMessage, ServerMessage, read_msg, write_msg},
+    protocol::{ChatMessage, ClientMessage, read_msg},
     uuid::Uid,
 };
 use tokio::{
+    io::AsyncWriteExt,
     net::{
         TcpStream,
         tcp::{OwnedReadHalf, OwnedWriteHalf},
@@ -21,56 +23,49 @@ use crate::{
 };
 
 pub async fn handle_connection(socket: TcpStream, chat_room: Arc<ChatRoom>) -> Result<()> {
-    let (mut reader, mut writer) = socket.into_split();
+    let (mut reader, writer) = socket.into_split();
 
-    let username = handle_room_join(&mut reader, &mut writer, chat_room.clone()).await?;
-    let (tx, rx) = mpsc::unbounded_channel::<Arc<ServerMessage>>();
-    let participant = Participant::new(username.clone(), tx);
-
-    let uuid = Uid::new();
-
-    chat_room.join(&uuid, participant).await;
+    let (username, rx, uuid) = handle_room_join(&mut reader, &chat_room).await?;
 
     let result = tokio::select! {
-        res = read_messages(reader, chat_room.clone(), &uuid, &username) => res,
+        res = read_messages(reader, &chat_room, &uuid, username) => res,
         res = write_messages(rx, writer) => res
     };
 
-    chat_room.leave(&uuid).await;
+    chat_room.leave(&uuid).await?;
     result
 }
 
 async fn handle_room_join(
     reader: &mut OwnedReadHalf,
-    writer: &mut OwnedWriteHalf,
-    chat_room: Arc<ChatRoom>,
-) -> Result<String> {
+    chat_room: &ChatRoom,
+) -> Result<(Arc<str>, UnboundedReceiver<Bytes>, Uid)> {
     let username = match read_msg(reader).await {
-        Ok(ClientMessage::JoinRequest { username }) => Ok(username),
-        _ => Err(Error::FailedToJoin),
-    }?;
-
-    let join_accepted = ServerMessage::JoinAccepted {
-        history: chat_room.get_history().await,
-        participants: chat_room.get_usernames().await,
+        Ok(ClientMessage::JoinRequest { username }) => username,
+        _ => return Err(Error::FailedToJoin),
     };
-    let _ = write_msg(writer, &join_accepted).await;
 
-    Ok(username)
+    let (tx, rx) = mpsc::unbounded_channel::<Bytes>();
+    let participant = Participant::new(username.clone(), tx);
+    let uuid = Uid::new();
+
+    chat_room.join(&uuid, participant).await?;
+
+    Ok((username, rx, uuid))
 }
 
 async fn read_messages(
     mut reader: OwnedReadHalf,
-    chat_room: Arc<ChatRoom>,
+    chat_room: &ChatRoom,
     user_uuid: &Uid,
-    username: &str,
+    username: Arc<str>,
 ) -> Result<()> {
     loop {
         let message = read_msg::<_, ClientMessage>(&mut reader)
             .await
             .map_err(|_| Error::ConnectionClosed {
                 uuid: user_uuid.clone(),
-                username: username.to_string(),
+                username: username.clone(),
             })?;
 
         match message {
@@ -83,12 +78,12 @@ async fn read_messages(
                         .unwrap()
                         .as_secs(),
                 };
-                chat_room.relay_message(message, user_uuid).await;
+                chat_room.relay_message(message, user_uuid).await?;
             }
             ClientMessage::JoinRequest { username: _ } => {
                 return Err(Error::AlreadyJoined {
                     uuid: user_uuid.clone(),
-                    username: username.to_string(),
+                    username,
                 });
             }
         };
@@ -96,13 +91,11 @@ async fn read_messages(
 }
 
 async fn write_messages(
-    mut rx: UnboundedReceiver<Arc<ServerMessage>>,
+    mut rx: UnboundedReceiver<Bytes>,
     mut writer: OwnedWriteHalf,
 ) -> Result<()> {
     while let Some(message) = rx.recv().await {
-        write_msg(&mut writer, &message)
-            .await
-            .map_err(|_| Error::EncodeError { message })?;
+        let _ = writer.write(&message).await;
     }
 
     Ok(())
