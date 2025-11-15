@@ -95,7 +95,9 @@ async fn write_messages(
     mut writer: OwnedWriteHalf,
 ) -> Result<()> {
     while let Some(message) = rx.recv().await {
-        let _ = writer.write(&message).await;
+        if writer.write_all(&message).await.is_err() {
+            break;
+        }
     }
 
     Ok(())

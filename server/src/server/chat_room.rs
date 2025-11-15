@@ -4,7 +4,7 @@ use common::{
     protocol::{ChatMessage, ServerMessage, encode_message},
     uuid::Uid,
 };
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 
 use crate::{
     error::{Error, Result},
@@ -12,14 +12,14 @@ use crate::{
 };
 
 pub struct ChatRoom {
-    participants: Mutex<HashMap<Uid, Participant>>,
+    participants: RwLock<HashMap<Uid, Participant>>,
     history: Mutex<Vec<Arc<ChatMessage>>>,
 }
 
 impl ChatRoom {
     pub fn new() -> Self {
         Self {
-            participants: Mutex::new(HashMap::new()),
+            participants: RwLock::new(HashMap::new()),
             history: Mutex::new(Vec::new()),
         }
     }
@@ -66,7 +66,7 @@ impl ChatRoom {
 
     pub async fn get_usernames(&self) -> Vec<(Uid, Arc<str>)> {
         self.participants
-            .lock()
+            .read()
             .await
             .iter()
             .map(|(uuid, participant)| (uuid.clone(), participant.username.clone()))
@@ -74,11 +74,11 @@ impl ChatRoom {
     }
 
     async fn add_participant(&self, uuid: Uid, participant: Participant) {
-        self.participants.lock().await.insert(uuid, participant);
+        self.participants.write().await.insert(uuid, participant);
     }
 
     async fn remove_participant(&self, uuid: &Uid) {
-        self.participants.lock().await.remove(uuid);
+        self.participants.write().await.remove(uuid);
     }
 
     async fn add_history(&self, message: Arc<ChatMessage>) {
@@ -91,7 +91,7 @@ impl ChatRoom {
             .map_err(|_| Error::EncodeError { message })?;
 
         let participants = {
-            let participants = self.participants.lock().await;
+            let participants = self.participants.read().await;
             participants
                 .iter()
                 .filter(|(username, _)| *username != sender)
