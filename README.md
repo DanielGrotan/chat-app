@@ -1,8 +1,6 @@
 # Chat App
 
 ![Rust](https://img.shields.io/badge/language-Rust-orange)
-![License](https://img.shields.io/badge/license-MIT-blue)
-![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
 A simple client-server chat application built in **Rust**, using **Slint** for the GUI.
 
