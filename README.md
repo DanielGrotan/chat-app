@@ -84,13 +84,13 @@ This will launch the GUI chat client.
 ## Dependencies
 
 - **Rust** — core programming language  
-  [https://www.rust-lang.org/](https://www.rust-lang.org/)
+  [rust-lang.org](https://www.rust-lang.org/)
 
 - **Slint** — declarative GUI toolkit for Rust  
-  [https://slint.dev/](https://slint.dev/)
+  [slint.dev](https://slint.dev/)
 
 - **tokio** — asynchronous runtime for networking
-  [https://crates.io/crates/tokio](https://crates.io/crates/tokio)
+  [crates.io](https://crates.io/crates/tokio)
 
 - **bincode** — binary serialization for Rust  
-  [https://crates.io/crates/bincode](https://crates.io/crates/bincode)
+  [crates.io](https://crates.io/crates/bincode)
