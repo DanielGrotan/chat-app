@@ -15,8 +15,6 @@ A simple client-server chat application built in **Rust**, using **Slint** for t
 - [Usage](#usage)
 - [Dependencies](#dependencies)
 
----
-
 ## Overview
 
 This project is a basic chat application used to learn how to build a real-time messaging system in Rust. It consists of:
@@ -25,8 +23,6 @@ This project is a basic chat application used to learn how to build a real-time 
 - A **client** with a GUI built using the Slint toolkit
 - Shared components (in a `common` folder) for data models and protocol definitions.
 
----
-
 ## Features
 
 - Real-time messaging between multiple clients
@@ -34,15 +30,11 @@ This project is a basic chat application used to learn how to build a real-time 
 - Modular architecture: clear separation between client, server, and shared logic
 - Cross-platform (Rust + Slint)
 
----
-
 ## Architecture
 
 - **Server**: Listens for client connections, forwards messages, and manages connected users
 - **Client**: GUI application using Slint for the interface, communicates with the server
 - **Common**: Shared Rust code (e.g. message types, encoding, decoding) used by both client and server
-
----
 
 ## Getting Started
 
@@ -65,8 +57,6 @@ cd chat-app
 ```bash
 cargo build
 ```
-
----
 
 ## Usage
 
@@ -92,8 +82,6 @@ This will launch the GUI chat client.
 
 - Open multiple clients to simulate chat between users
 - Enter the server address (e.g. `localhost:8080`), username, and start sending messages
-
----
 
 ## Dependencies
 
