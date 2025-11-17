@@ -1,0 +1,110 @@
+import {
+    AppState,
+} from "app_state.slint";
+import { ListView, TextEdit, Button, LineEdit } from "std-widgets.slint";
+
+component ChatBubble {
+    in property <string> text;
+    in property <string> username;
+    in property <bool> is-author;
+    in property <bool> is-system;
+
+    HorizontalLayout {
+        alignment: is-author ? end : is-system ? center : start;
+        padding: 0.5rem;
+
+        if is-system: Text {
+            text: root.text;
+            color: #888;
+            font-size: 12px;
+            horizontal-alignment: center;
+        }
+
+        if !is-system: Rectangle {
+            background: is-author ? #b0d7ff : #e0e0e0;
+            border-radius: 12px;
+            max-width: 300px;
+
+            VerticalLayout {
+                padding: 8px;
+                spacing: 4px;
+
+                Text {
+                    text: root.username;
+                    font-size: 10px;
+                    font-weight: 600;
+                    color: is-author ? #1a3d6c : #444;
+                }
+
+                Text {
+                    wrap: word-wrap;
+                    text: root.text;
+                }
+            }
+        }
+    }
+}
+
+export component ChatView inherits Rectangle {
+    function send-message() {
+        AppState.send-message(message_input.text);
+        message_input.text = "";
+        message_input.focus();
+        timer.start();
+    }
+
+    timer := Timer {
+        property <int> count: 0;
+        interval: 0ms;
+        running: false;
+
+        triggered => {
+            count += 1;
+
+            if count == 2 {
+                list_view.viewport-y = list_view.visible-height - list_view.viewport-height;
+                self.stop();
+                count = 0;
+            }
+        }
+    }
+
+    VerticalLayout {
+        spacing: 14px;
+        padding: 4rem;
+
+        Rectangle {
+            vertical-stretch: 1;
+
+            list-view := ListView {
+                vertical-scrollbar-policy: always-off;
+
+                for data in AppState.chats: ChatBubble {
+                    text: data.text;
+                    username: data.username;
+                    is-author: data.is-author;
+                    is-system: data.is-system;
+                }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 8px;
+
+            message_input := LineEdit {
+                placeholder-text: @tr("Type a message...");
+
+                accepted => {
+                    send-message()
+                }
+            }
+
+            Button {
+                text: @tr("Send");
+                clicked => {
+                    send-message()
+                }
+            }
+        }
+    }
+}

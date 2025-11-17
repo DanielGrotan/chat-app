@@ -1,0 +1,17 @@
+export struct Chat {
+  text: string,
+  username: string,
+  is-author: bool,
+  is-system: bool}
+
+export struct User {
+  username: string,
+}
+
+export global AppState {
+    in property <string> username;
+    in property <[Chat]> chats;
+    in property <[User]> online-users;
+
+    callback send-message(message: string);
+}

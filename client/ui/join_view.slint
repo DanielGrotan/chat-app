@@ -1,0 +1,55 @@
+import { Button, LineEdit } from "std-widgets.slint";
+import { JoinLogic } from "join_logic.slint";
+import { AppState } from "app_state.slint";
+
+export component JoinView {
+    property <bool> can-submit: !address.text.is-empty && !username.text.is-empty;
+
+    function submit() {
+        if can-submit {
+            JoinLogic.join-room(address.text, username.text)
+        }
+    }
+
+    init => {
+        address.focus()
+    }
+
+    VerticalLayout {
+        spacing: 14px;
+        alignment: center;
+
+        Text {
+            text: @tr("Join a room");
+            font-size: 24px;
+            horizontal-alignment: center;
+        }
+
+        address := LineEdit {
+            placeholder-text: @tr("Server address");
+            text: "localhost:8080";
+            horizontal-alignment: center;
+            accepted => {
+                submit()
+            }
+        }
+
+        username := LineEdit {
+            placeholder-text: @tr("Username");
+            text <=> AppState.username;
+            horizontal-alignment: center;
+            accepted => {
+                submit()
+            }
+        }
+
+        Button {
+            text: @tr("Join");
+            enabled: can-submit;
+            primary: true;
+            clicked => {
+                submit()
+            }
+        }
+    }
+}

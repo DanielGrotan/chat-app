@@ -1,0 +1,26 @@
+import { Button } from "std-widgets.slint";
+import { JoinView } from "join_view.slint";
+import { ChatView } from "chat_view.slint";
+
+export { JoinLogic } from "join_logic.slint";
+export { AppState } from "app_state.slint";
+
+export enum View {
+  join,
+  chat,
+}
+
+export component App inherits Window {
+    in property <View> view: join;
+
+    Rectangle {
+
+        JoinView {
+            visible: view == View.join;
+        }
+
+        ChatView {
+            visible: view == View.chat;
+        }
+    }
+}
