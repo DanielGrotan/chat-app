@@ -5,6 +5,7 @@ use common::{protocol::ServerMessage, uuid::Uid};
 pub type Result<T> = core::result::Result<T, Error>;
 
 #[derive(Debug)]
+#[allow(unused)]
 pub enum Error {
     ConnectionClosed { uuid: Uid, username: Arc<str> },
     EncodeError { message: ServerMessage },

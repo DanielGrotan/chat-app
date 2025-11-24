@@ -12,6 +12,7 @@ async fn main() -> io::Result<()> {
     let chat_room = Arc::new(ChatRoom::new());
 
     let listener = TcpListener::bind("127.0.0.1:8080").await?;
+    println!("Listening on {}", listener.local_addr().unwrap());
 
     loop {
         let (socket, addr) = listener.accept().await?;
